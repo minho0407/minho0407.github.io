@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>선고 예측</title>
+    <title>범죄유형검사</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #3a3a6d;
-            color: #fff;
+            font-family: '나눔고딕', sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
             text-align: center;
         }
 
@@ -20,7 +20,14 @@
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 32px;
+            font-weight: bold;
+            color: #5c5cb3;
+        }
+
+        p {
+            font-size: 18px;
+            line-height: 1.5;
         }
 
         button {
@@ -39,48 +46,70 @@
             background-color: #4b4b9a;
         }
 
+        img {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+        }
+
     </style>
 </head>
 <body>
 
-    <!-- 페이지 1: 범죄 유형 선택 -->
     <div class="page" id="page1">
-        <h1>1/5. 범죄 유형</h1>
-        <button onclick="nextPage(1, '강력범죄')">강력범죄</button>
-        <button onclick="nextPage(1, '절도범죄')">절도범죄</button>
-        <!-- 추가된 범죄 유형 -->
-        <button onclick="nextPage(1, '폭력범죄')">폭력범죄</button>
-        <button onclick="nextPage(1, '지능범죄')">지능범죄</button>
+        <h1>범죄형량 예측 사이트에 오신 것을 환영합니다.</h1>
+        <p>이 웹 페이지는 범죄형량 예측을 도와주는 도구입니다.
+        <p>검사를 시작하려면 아래의 버튼을 눌러주세요.</p>
+        <button onclick="nextPage(1, '검사 시작')">검사 시작</button>
+    </div>
+
+    <!-- 페이지 2: 범죄 유형 선택 -->
+        <div class="page" id="page2">
+        <h1>2/7 범죄 유형</h1>
+        <button onclick="nextPage(2, '성범죄')">성범죄</button>
+        <button onclick="nextPage(2 '살인')">살인</button>
+        <button onclick="nextPage(2, '절도')">절도</button>
+        <button onclick="nextPage(2, '폭행')">폭행</button>
+        <button onclick="nextPage(2, '사기')">사기</button>
+        <button onclick="nextPage(2, '무면허운전')">무면허운전</button>
+        <button onclick="nextPage(2, '공무집행방해')">공무집행방해</button>
         <!-- ... 여러 버튼 추가 가능 -->
     </div>
 
-    <!-- 페이지 2: 미성년자 여부 -->
-        <div class="page" id="page2">
-        <h1>2/5. 촉법소년인가요?</h1>
-        <button onclick="nextPage(2, '예')">예</button>
-        <button onclick="nextPage(2, '아니오')">아니오</button>
+    <!-- 페이지 3: 미성년자 여부 -->
+        <div class="page" id="page3">
+        <h1>3/7. 촉법소년인가요?(만 14세 미만)</h1>
+        <button onclick="nextPage(3, '예')">예</button>
+        <button onclick="nextPage(3, '아니오')">아니오</button>
     </div>
     
-    <div class="page" id="page3">
-        <h1>3/5. 무기 소지:</h1>
-        <button onclick="nextPage(3, 'yes')">있음</button>
-        <button onclick="nextPage(3, 'no')">없음</button>
-    </div>
-
     <div class="page" id="page4">
-        <h1>4/5. 범인 유형:</h1>
-        <button onclick="nextPage(4, 'main')">주범</button>
-        <button onclick="nextPage(4, 'accomplice')">공범</button>
+        <h1>4/7. 무기 소지:</h1>
+        <button onclick="nextPage(4, 'yes')">있음</button>
+        <button onclick="nextPage(4, 'no')">없음</button>
     </div>
 
     <div class="page" id="page5">
-        <h1>5/5. 반성:</h1>
-        <button onclick="predict('yes')">했음</button>
-        <button onclick="predict('no')">하지 않음</button>
+        <h1>5/7. 범인 유형:</h1>
+        <button onclick="nextPage(5, 'main')">주범</button>
+        <button onclick="nextPage(5, 'accomplice')">공범</button>
     </div>
 
-        <!-- 결과 페이지의 ID를 page6으로 변경 -->
     <div class="page" id="page6">
+        <h1>6/7. 반성:</h1>
+        <button onclick="nextPage(6, 'yes')">했음</button>
+        <button onclick="nextPage(6, 'no')">하지 않음</button>
+    </div>
+
+    <div class="page" id="page7">
+        <h1>7/7. 피해 정도:</h1>
+        <button onclick="predict('큼')">큼</button>
+        <button onclick="predict('중간')">중간</button>
+        <button onclick="predict('작음')">작음</button>
+    </div>
+
+        <!-- 결과 페이지의 ID를 page8으로 변경 -->
+    <div class="page" id="page8">
         <h1>결과</h1>
         <p id="resultText">여기에 결과가 표시됩니다.</p>
         <button onclick="resetForm()">다시 시작</button>
@@ -110,10 +139,10 @@
             answers.push(answer);
     
             // 현재 페이지 숨기기
-            document.getElementById('page5').style.display = 'none';
+            document.getElementById('page7').style.display = 'none';
         
             // 결과 페이지 표시
-            document.getElementById('page6').style.display = 'block';
+            document.getElementById('page8').style.display = 'block';
             generateResult();
         }
 
@@ -122,7 +151,7 @@
             answers = [];
 
             // 모든 페이지를 숨기기
-            for(let i=1; i<=6; i++) {
+            for(let i=1; i<=8; i++) {
                 document.getElementById(`page${i}`).style.display = 'none';
             }
 
@@ -134,49 +163,68 @@
         // 답변을 기반으로 형량 또는 벌금을 계산합니다.
         let sentence = 0; // 형량 (월 기준)
         let fine = 0; // 벌금 (만 원 기준)
+    
 
         // 범죄 유형에 따른 형량 또는 벌금 추가
-        switch (answers[0]) {
-            case '강력범죄':
+        switch (answers[1]) {
+            case '성범죄':
                 sentence += 36;
                 break;
-            case '절도범죄':
+            case '살인':
+                sentence += 36;
+                break;
+            case '절도':
                 sentence += 12;
-                fine += 1000;
                 break;
-            case '폭력범죄':
+            case '폭행':
                 sentence += 24;
-                fine += 500;
                 break;
-            case '지능범죄':
-                fine += 2000;
+            case '사기':
+                sentence += 12;
+                break;
+            case '무면허운전':
+                sentence += 6;
+                break;
+            case '공무집행방해':
+                sentence += 3;
                 break;
         }
     
         // 촉법소년 여부에 따른 형량 감면
-        if (answers[1] === '예') {
+        if (answers[2] === '예') {
             sentence *= 0.0; // 100% 감면
         }
     
         // 무기 소지 여부에 따른 형량 또는 벌금 추가
-        if (answers[2] === 'yes') {
+        if (answers[3] === 'yes') {
             sentence += 6;
         }
     
         // 범인 유형에 따른 형량 또는 벌금 추가
-        if (answers[3] === 'accomplice') {
+        if (answers[4] === 'accomplice') {
             sentence *= 0.5; // 공범의 경우 형량 50% 감면
         }
     
         // 반성 여부에 따른 형량 감면
-        if (answers[4] === 'yes') {
+        if (answers[5] === 'yes') {
             sentence *= 0.8; // 20% 감면
         }
-    
+        
+        // 피해 정도에 따른 형량 추가
+        if (answers[6] === '큼') {
+            sentence *= 1.5; // 50% 추가
+        }
+        if (answers[6] === '중간') {
+            sentence *= 1.0; // 0% 감면
+        }
+        if (answers[6] === '작음') {
+            sentence *= 0.5; // 50% 감면
+        }
+
         // 형량의 소수점 반올림
         sentence = Math.round(sentence);
     
-        let resultText = `추천 형량: ${sentence}개월, 벌금: ${fine}만 원`;
+        let resultText = `예상 형량: ${sentence}개월, 벌금: ${fine}만 원`;
         document.getElementById('resultText').innerText = resultText;
     }
     </script>
