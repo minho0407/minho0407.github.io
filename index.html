@@ -60,14 +60,14 @@
         <h1>범죄형량 예측 사이트에 오신 것을 환영합니다.</h1>
         <p>이 웹 페이지는 범죄형량 예측을 도와주는 도구입니다.
         <p>검사를 시작하려면 아래의 버튼을 눌러주세요.</p>
-        <button onclick="nextPage(1, '검사 시작')">검사 시작</button>
+        <button onclick="nextPage(1)">검사 시작</button>
     </div>
 
     <!-- 페이지 2: 범죄 유형 선택 -->
         <div class="page" id="page2">
         <h1>2/7 범죄 유형</h1>
         <button onclick="nextPage(2, '성범죄')">성범죄</button>
-        <button onclick="nextPage(2 '살인')">살인</button>
+        <button onclick="nextPage(2, '살인')">살인</button>
         <button onclick="nextPage(2, '절도')">절도</button>
         <button onclick="nextPage(2, '폭행')">폭행</button>
         <button onclick="nextPage(2, '사기')">사기</button>
@@ -113,26 +113,37 @@
         <h1>결과</h1>
         <p id="resultText">여기에 결과가 표시됩니다.</p>
         <button onclick="resetForm()">다시 시작</button>
+
+        <h2>추가 도움말</h2>
+        <p><a id="lawyerLink" href="https://www.lawtalk.co.kr/">변호사 도움</a></p>
+        <p><a id="counselingLink" href="https://www.kyci.or.kr/userSite/cooperation/list.asp?basicNum=1">심리상담 도움</a></p>
+
+        <h2>관련 판례</h2> 
+        <p><a id="case1Link" href="#">판례 1</a></p>
+        <p><a id="case2Link" href="#">판례 2</a></p>
+        <p><a id="case3Link" href="#">판례 3</a></p>
     </div>
+
 
     <script>
         let answers = [];
 
-        function nextPage(pageNum, answer) {
-            // 현재 페이지 숨기기
-            document.getElementById(`page${pageNum}`).style.display = 'none';
+        function nextPage(pageNum, answer=null) {
+ 	   // 현재 페이지 숨기기
+    	document.getElementById(`page${pageNum}`).style.display = 'none';
 
-            // 답 저장
-            answers.push(answer);
+    	// 답 저장 (답변이 있는 경우만)
+    	if(answer !== null) answers.push(answer);
 
-            // 다음 페이지 보이기
-            if (document.getElementById(`page${pageNum + 1}`)) {
-                document.getElementById(`page${pageNum + 1}`).style.display = 'block';
-            } else {
-                // 마지막 페이지인 경우 결과 생성
-                generateResult();
-            }
-        }
+    	// 다음 페이지 보이기
+    	if (document.getElementById(`page${pageNum + 1}`)) {
+           document.getElementById(`page${pageNum + 1}`).style.display = 'block';
+    	} else {
+            // 마지막 페이지인 경우 결과 생성
+       	    generateResult();
+    	}
+    }
+
     
         function predict(answer) {
             // 답 저장
@@ -224,9 +235,31 @@
         // 형량의 소수점 반올림
         sentence = Math.round(sentence);
     
+        
         let resultText = `예상 형량: ${sentence}개월, 벌금: ${fine}만 원`;
         document.getElementById('resultText').innerText = resultText;
+
+        // 범죄 유형에 따른 관련 판례 설정
+        let case1Link, case2Link, case3Link;
+        switch (answers[1]) {
+            case '성범죄':
+                case1Link = '#'; // 실제 링크로 교체
+                case2Link = '#'; // 실제 링크로 교체
+                case3Link = '#'; // 실제 링크로 교체
+                break;
+            case '살인':
+                case1Link = '#'; // 실제 링크로 교체
+                case2Link = '#'; // 실제 링크로 교체
+                case3Link = '#'; // 실제 링크로 교체
+                break;
+            // ... 다른 범죄 유형에 대한 case도 추가 ...
+        }
+
+        document.getElementById('case1Link').href = case1Link;
+        document.getElementById('case2Link').href = case2Link;
+        document.getElementById('case3Link').href = case3Link;
     }
+        
     </script>
 </body>
 </html>
