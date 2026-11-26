@@ -62,6 +62,9 @@ def _per_ticker(g: pd.DataFrame) -> pd.DataFrame:
     g["y_day_high"] = h.shift(-1) / no - 1                 # 당일 최대 상승폭(참고)
     for hz in (1, 2, 3):
         g[f"y_swing_{hz}"] = c.shift(-hz) / no - 1         # hz일째 종가 청산
+        # 손절/익절 시뮬레이션용 미래 OHLC (학습 특징에는 쓰지 않음)
+        g[f"o{hz}"], g[f"h{hz}"] = o.shift(-hz), h.shift(-hz)
+        g[f"l{hz}"], g[f"c{hz}"] = l.shift(-hz), c.shift(-hz)
     return g
 
 

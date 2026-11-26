@@ -5,6 +5,7 @@
 - VWAP 위에 있는지, VWAP 대비 괴리
 - 시가범위(첫 30분) 고점 돌파 여부
 - 당일 상승률 (너무 많이 오른 종목은 감점)
+진입=현재가, 손절=VWAP/첫30분 저점 아래, 익절=손익비 2:1. 승률은 검증되지 않음.
 """
 from __future__ import annotations
 
@@ -45,9 +46,18 @@ def scan(tickers: list[str], top: int = 15) -> pd.DataFrame:
                  + 1.5 * (last > vwap) + 20 * (last / vwap - 1)
                  + 1.0 * orb
                  + (10 * chg if chg < 0.15 else 1.5 - 5 * (chg - 0.15)))
+        # 손절: VWAP·첫30분 저점 중 현재가 아래의 높은 쪽 (현재가 대비 1~4%로 제한), 익절: 손익비 2:1
+        orl = today.head(6)["low"].min()
+        cands = [x for x in (vwap, orl) if x < last]
+        sl = max(cands) * 0.998 if cands else last * 0.98
+        sl = min(max(sl, last * 0.96), last * 0.99)
+        tp = last + 2 * (last - sl)
         rows.append(dict(ticker=t, 현재가=last, 등락률=chg, 상대거래량=rvol,
-                         VWAP괴리=last / vwap - 1, 시가범위돌파=orb, 점수=score))
+                         VWAP괴리=last / vwap - 1, 시가범위돌파=orb, 점수=score,
+                         진입=last, 익절=tp, 손절=sl))
     out = pd.DataFrame(rows)
     if out.empty:
         return out
-    return out.sort_values("점수", ascending=False).head(top).reset_index(drop=True)
+    out = out.sort_values("점수", ascending=False).head(top).reset_index(drop=True)
+    out.attrs["day"] = max(df["day"])
+    return out
