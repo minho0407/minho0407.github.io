@@ -48,6 +48,45 @@
 | `pick` | 오늘 장 마감 기준, 다음 거래일 매수 후보 Top N |
 | `scan` | 장중 5분봉으로 거래량 급증·VWAP 위·시가범위 돌파 종목 점수화 |
 
+## ⚡ 실시간 감시 (한국투자증권 웹소켓 → 텔레그램 즉시 알림)
+
+GitHub Actions가 만든 후보를 **항상 켜진 서버**가 장중 실시간으로 지켜보다가 바로 알려줍니다. PC는 필요 없습니다.
+
+| 알림 | 언제 |
+|---|---|
+| 🟢 진입 | 장 시작, 시가가 진입상한 이하 → 실제 시가 기준 익절가/손절가 확정 |
+| ⚪ 패스 | 시가가 진입상한 초과(갭상승) |
+| 🎯 익절 | 체결가 ≥ 익절가 |
+| 🛑 손절 | 체결가 ≤ 손절가 |
+| ⏰ 마감 전 | 당일 단타(스윙은 마지막 날) 마감 15분 전 청산 안내 |
+| 📋 요약 | 장 마감 후 오늘 결과 |
+
+- 한국 09:00~15:30, 미국 정규장(뉴욕 09:30~16:00, 서머타임 자동 반영)
+- 스윙 포지션은 서버에 저장돼 다음 날에도 이어서 감시
+- **주문은 하지 않습니다**: 알림만 보냅니다
+- 미국 실시간 체결가는 KIS 기준 무료·지연 없음
+
+### 1. 한국투자증권 앱키 받기
+1. 한국투자증권 계좌 개설 → [KIS Developers](https://apiportal.koreainvestment.com) 로그인
+2. **API 신청** → 실전투자 앱키(APP KEY)와 앱시크릿(APP SECRET) 발급
+   - 이 프로그램은 시세만 조회하므로 실전 앱키를 써도 주문 위험이 없습니다
+3. 앱키/시크릿은 **절대 채팅·코드·GitHub에 올리지 마세요**. 서버의 `.env` 파일에만 넣습니다
+
+### 2. 서버 준비 (항상 켜진 우분투 서버 1대)
+- 무료: Oracle Cloud 프리티어 (서울/춘천 리전), 유료: AWS Lightsail 서울 (월 몇천 원) 등
+- 메모리 1GB면 충분 (분석용 라이브러리는 설치하지 않음)
+
+### 3. 설치 (서버에서)
+```bash
+curl -fsSL https://raw.githubusercontent.com/minho0407/minho0407.github.io/main/daytrade-ai/deploy/install.sh -o install.sh
+bash install.sh
+nano ~/daytrade/daytrade-ai/.env            # 앱키·시크릿·텔레그램 입력
+cd ~/daytrade/daytrade-ai && .venv/bin/python realtime.py --check   # 연결 점검 (장중이면 체결가가 찍힘)
+sudo systemctl start daytrade-realtime      # 감시 시작 (재부팅해도 자동 실행)
+journalctl -u daytrade-realtime -f          # 로그 보기
+.venv/bin/python realtime.py --status       # 감시 중인 종목 보기
+```
+
 ## 설치
 
 ```bash
@@ -124,5 +163,6 @@ python main.py backtest --demo
 
 ## 다음 단계 아이디어
 
-- 증권사 API 연결해 실시간 분봉 + 자동 주문 (모의투자부터)
+- 자동 주문 (반드시 모의투자부터)
+- 텔레그램 명령(/status 등)으로 상태 조회
 - 뉴스/공시 키워드, 외국인·기관 수급(pykrx) 특징 추가

@@ -55,13 +55,24 @@ def send(text: str, tag: str, payload: dict | None = None) -> None:
             os.makedirs(d, exist_ok=True)
             with open(os.path.join(d, f"{tag}.json"), "w", encoding="utf-8") as f:
                 json.dump(payload, f, ensure_ascii=False, indent=1, default=str)
+    if not telegram(text):
+        print("[notify] 텔레그램 미설정/실패 → output/ 에만 저장")
+
+
+def telegram(text: str) -> bool:
+    """텔레그램 전송. 설정이 없거나 실패하면 False (프로그램은 멈추지 않음)."""
     token, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
     if not (token and chat):
-        print("[notify] 텔레그램 미설정 → output/ 에만 저장")
-        return
+        return False
+    ok = True
     for i in range(0, len(text), 3900):  # 텔레그램 메시지 길이 제한 4096자
         body = urllib.parse.urlencode({"chat_id": chat, "text": text[i:i + 3900]}).encode()
         req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=body)
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            ok = json.load(resp).get("ok")
-        print("[notify] 텔레그램 전송", "성공" if ok else "실패")
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                ok &= bool(json.load(resp).get("ok"))
+        except Exception as e:  # noqa: BLE001
+            print(f"[notify] 텔레그램 전송 오류: {e.__class__.__name__}")
+            ok = False
+    print("[notify] 텔레그램 전송", "성공" if ok else "실패")
+    return ok

@@ -2,3 +2,6 @@ cache/
 models/
 output/
 __pycache__/
+state/
+.env
+.venv/

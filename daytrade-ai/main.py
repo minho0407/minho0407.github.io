@@ -136,6 +136,7 @@ def cmd_pick(args):
     if args.notify:
         payload = {
             "kind": "plan", "market": args.market, "mode": mode_name(args), "asof": f"{last:%Y-%m-%d}",
+            "horizon": rule.horizon, "tp_atr": rule.tp, "sl_atr": rule.sl,
             "generated": pd.Timestamp.now(tz="Asia/Seoul").strftime("%Y-%m-%d %H:%M KST"),
             "summary": summary, "demo": args.demo,
             "backtest": {"win": bt["승률"], "avg": bt["평균수익(비용차감)"], "base_avg": bt["비교: 전체종목 평균"],
