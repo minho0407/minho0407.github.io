@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>단타 후보</title>
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --muted: #6b7280; --line: #e5e7eb;
+    --up: #d92d20; --down: #1d63ed; --accent: #4f46e5; --chip: #eef0f4; --warn-bg: #fff7e6; --warn: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --card: #181b21; --text: #e8eaee; --muted: #9aa1ad; --line: #2a2f38;
+      --up: #ff6b5e; --down: #6ea0ff; --accent: #8b85ff; --chip: #232832; --warn-bg: #2b2213; --warn: #f0c36a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; }
+  header { position: sticky; top: 0; background: var(--bg); padding: 14px 16px 8px; z-index: 2;
+    border-bottom: 1px solid var(--line); }
+  h1 { font-size: 19px; margin: 0 0 10px; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .tabs button { flex: none; border: 0; background: var(--chip); color: var(--text); padding: 7px 12px;
+    border-radius: 999px; font-size: 14px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+  main { padding: 12px 16px 40px; max-width: 640px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin: 2px 0 12px; }
+  .summary { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+    font-size: 13px; margin-bottom: 12px; }
+  .summary b { font-variant-numeric: tabular-nums; }
+  .warn { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .name { font-weight: 700; font-size: 16px; }
+  .tk { color: var(--muted); font-size: 13px; margin-left: 4px; }
+  .prob { font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .prob small { font-weight: 400; font-size: 12px; color: var(--muted); }
+  .bar { height: 5px; background: var(--chip); border-radius: 3px; margin: 8px 0 10px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-variant-numeric: tabular-nums; }
+  .grid div { background: var(--chip); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+  .grid span { display: block; font-size: 11px; color: var(--muted); }
+  .grid b { font-size: 14px; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+  footer { color: var(--muted); font-size: 12px; padding: 0 16px 30px; max-width: 640px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📈 단타 후보</h1>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+</header>
+<main id="view"><p class="empty">불러오는 중…</p></main>
+<footer>투자 참고용입니다. 승률은 과거 백테스트 실적이며 수익을 보장하지 않습니다.</footer>
+
+<script>
+const TABS = [
+  ["kr_day", "🇰🇷 당일"], ["kr_swing", "🇰🇷 스윙"], ["kr_scan", "🇰🇷 장중"],
+  ["us_day", "🇺🇸 당일"], ["us_swing", "🇺🇸 스윙"], ["us_scan", "🇺🇸 장중"],
+];
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = (x) => (x >= 0 ? "+" : "") + (x * 100).toFixed(2) + "%";
+const px = (x, m) => m === "kr" ? Math.round(x).toLocaleString("ko-KR") : Number(x).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+function renderPlan(d) {
+  const m = d.market, b = d.backtest || {};
+  let h = `<p class="meta">${esc(d.mode)} · ${esc(d.asof)} 마감 기준 · 업데이트 ${esc(d.generated)}</p>`;
+  if (d.demo) h += `<div class="warn">합성(가짜) 데이터로 만든 예시입니다.</div>`;
+  if (b.avg !== undefined) {
+    const good = b.avg > b.base_avg && b.avg > 0;
+    h += `<div class="summary">최근 검증 · 상위 종목 승률 <b>${(b.win*100).toFixed(0)}%</b>, 평균 <b class="${b.avg>=0?"up":"down"}">${pct(b.avg)}</b>
+      (전체종목 ${pct(b.base_avg)}) · 거래 ${b.trades}건</div>`;
+    if (!good) h += `<div class="warn">최근 검증에서 비용 차감 후 평균수익이 0 이하입니다. 매매보다 관망을 권합니다.</div>`;
+  }
+  if (!d.picks?.length) return h + `<p class="empty">조건을 만족하는 종목이 없습니다.</p>`;
+  for (const p of d.picks) {
+    const w = Math.round(p.win_prob * 100);
+    h += `<article class="card">
+      <div class="top"><div><span class="name">${esc(p.name || p.ticker)}</span>${p.name ? `<span class="tk">${esc(p.ticker)}</span>` : ""}</div>
+        <div class="prob">${w}% <small>승률</small></div></div>
+      <div class="bar"><i style="width:${w}%"></i></div>
+      <div class="grid">
+        <div><span>진입 (시가)</span><b>≤ ${px(p.entry_max, m)}</b></div>
+        <div><span>익절</span><b class="up">${px(p.tp, m)}</b></div>
+        <div><span>손절</span><b class="down">${px(p.sl, m)}</b></div>
+        <div><span>기준가</span><b>${px(p.entry_ref, m)}</b></div>
+        <div><span>익절/손절 폭</span><b>${pct(p.tp/p.entry_ref-1)} / ${pct(p.sl/p.entry_ref-1)}</b></div>
+        <div><span>기대수익</span><b class="${p.exp_ret>=0?"up":"down"}">${pct(p.exp_ret)}</b></div>
+      </div>
+    </article>`;
+  }
+  return h + `<p class="note">다음 거래일 시가에 매수, 시가가 진입 상한보다 높으면 패스. 익절·손절은 실제 체결가에 같은 % 적용.</p>`;
+}
+
+function renderScan(d) {
+  let h = `<p class="meta">장중 스캔 · 업데이트 ${esc(d.generated)}</p>
+    <div class="warn">규칙 기반 점수입니다. 승률은 검증되지 않았습니다.</div>`;
+  if (!d.rows?.length) return h + `<p class="empty">결과가 없습니다.</p>`;
+  for (const r of d.rows) {
+    h += `<article class="card">
+      <div class="top"><span class="name">${esc(r.ticker)}</span><span class="prob">${esc(r["등락률"])}</span></div>
+      <div class="grid" style="margin-top:10px">
+        <div><span>진입 (현재가)</span><b>${px(r["진입"], d.market)}</b></div>
+        <div><span>익절</span><b class="up">${px(r["익절"], d.market)}</b></div>
+        <div><span>손절</span><b class="down">${px(r["손절"], d.market)}</b></div>
+        <div><span>상대거래량</span><b>${esc(r["상대거래량"])}</b></div>
+        <div><span>VWAP 괴리</span><b>${esc(r["VWAP괴리"])}</b></div>
+        <div><span>점수</span><b>${esc(r["점수"])}</b></div>
+      </div></article>`;
+  }
+  return h;
+}
+
+async function show(key) {
+  document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.k === key));
+  try { localStorage.setItem("tab", key); } catch (e) {}
+  $("#view").innerHTML = `<p class="empty">불러오는 중…</p>`;
+  try {
+    const r = await fetch(`data/${key}.json?t=${Date.now()}`);
+    if (!r.ok) throw 0;
+    const d = await r.json();
+    $("#view").innerHTML = d.kind === "scan" ? renderScan(d) : renderPlan(d);
+  } catch (e) {
+    $("#view").innerHTML = `<p class="empty">아직 결과가 없습니다.<br>예정된 시간에 자동으로 채워집니다.</p>`;
+  }
+}
+
+$("#tabs").innerHTML = TABS.map(([k, l]) => `<button role="tab" data-k="${k}">${l}</button>`).join("");
+$("#tabs").addEventListener("click", (e) => e.target.dataset.k && show(e.target.dataset.k));
+let start = "kr_day";
+try { start = localStorage.getItem("tab") || start; } catch (e) {}
+show(start);
+</script>
+</body>
+</html>

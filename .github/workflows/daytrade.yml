@@ -1,0 +1,83 @@
+# 단타 AI 자동 실행: GitHub 서버에서 정해진 시간마다 돌고,
+# 결과를 텔레그램으로 보내고 사이트(/daytrade/)에 올린다. PC가 켜져 있을 필요 없음.
+# GitHub 예약 실행은 혼잡 시 5~30분 늦어질 수 있다.
+name: daytrade-ai
+
+on:
+  schedule:
+    - cron: "50 6 * * 1-5"    # 한국 15:50 (장 마감 후) → 한국 내일 후보
+    - cron: "30 21 * * 1-5"   # 한국 06:30 (미국 장 마감 후) → 미국 다음날 후보
+    - cron: "40 0 * * 1-5"    # 한국 09:40 → 한국 장중 스캔
+    - cron: "0 15 * * 1-5"    # 한국 00:00 (뉴욕 10~11시) → 미국 장중 스캔
+  workflow_dispatch:          # Actions 탭에서 수동 실행
+    inputs:
+      job:
+        description: "실행할 작업"
+        type: choice
+        options: [kr, us, kr-scan, us-scan]
+        default: kr
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daytrade-ai
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      SITE_DATA_DIR: ${{ github.workspace }}/daytrade/data
+    defaults:
+      run:
+        working-directory: daytrade-ai
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: daytrade-ai/requirements.txt
+      - run: pip install -r requirements.txt
+
+      - name: 작업 결정
+        id: pick
+        run: |
+          case "${{ github.event.schedule }}" in
+            "50 6 * * 1-5")  JOB=kr ;;
+            "30 21 * * 1-5") JOB=us ;;
+            "40 0 * * 1-5")  JOB=kr-scan ;;
+            "0 15 * * 1-5")  JOB=us-scan ;;
+            *)               JOB="${{ inputs.job }}" ;;
+          esac
+          echo "job=$JOB" >> "$GITHUB_OUTPUT"
+          echo "실행: $JOB"
+
+      - name: 장 마감 후 후보 (당일 단타 + 2일 스윙)
+        if: steps.pick.outputs.job == 'kr' || steps.pick.outputs.job == 'us'
+        run: |
+          M=${{ steps.pick.outputs.job }}
+          FORCE=${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+          python main.py pick --market $M --mode day --top 5 --notify $FORCE
+          python main.py pick --market $M --mode swing --horizon 2 --top 5 --notify $FORCE
+
+      - name: 장중 스캔
+        if: endsWith(steps.pick.outputs.job, '-scan')
+        run: |
+          M=$(echo ${{ steps.pick.outputs.job }} | cut -d- -f1)
+          FORCE=${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+          python main.py scan --market $M --universe 150 --top 8 --notify $FORCE
+
+      - name: 사이트에 결과 반영
+        working-directory: .
+        run: |
+          git config user.name "daytrade-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add daytrade/data
+          if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
+          git commit -m "daytrade: ${{ steps.pick.outputs.job }} 결과 업데이트"
+          for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
